@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Layanan Ghost
+  ghost:
+    image: 'ghost:5'  # Menggunakan Ghost versi 5
+    container_name: ghost
+    restart: unless-stopped  # Jika ada masalah, Ghost akan restart otomatis
+    ports:
+      - "2368:2368"  # Port untuk mengakses Ghost dari host
+    volumes:
+      - 'ghost-content-data:/var/lib/ghost/content'  # Volume untuk data Ghost
+      - './themes:/var/lib/ghost/content/themes'  # Volume untuk tema kustom
+    environment:
+      # Pengaturan lingkungan untuk Ghost
+      - NODE_ENV=${NODE_ENV:-production}  # Mode produksi secara default
+      - url=${SERVICE_FQDN_GHOST_2368:-http://localhost:2368}  # URL Ghost, dapat disesuaikan
+      - database__client=mysql  # Gunakan MySQL sebagai database
+      - database__connection__host=${MYSQL_HOST:-mysql}  # Nama host database (service MySQL)
+      - database__connection__user=${SERVICE_USER_MYSQL:-ghost_user}  # Pengguna MySQL
+      - database__connection__password=${SERVICE_PASSWORD_MYSQL:-ghost_password}  # Password MySQL
+      - database__connection__database=${MYSQL_DATABASE:-ghost_db}  # Nama database Ghost
+      - mail__transport=SMTP  # Menggunakan SMTP untuk pengiriman email
+      - mail__options__auth__user=${MAIL_OPTIONS_AUTH_USER:-your_email@example.com}  # Pengguna SMTP
+      - mail__options__auth__pass=${MAIL_OPTIONS_AUTH_PASS:-your_password}  # Password SMTP
+      - mail__options__secure=${MAIL_OPTIONS_SECURE:-true}  # Keamanan koneksi email
+      - mail__options__port=${MAIL_OPTIONS_PORT:-465}  # Port SMTP (default 465)
+      - mail__options__service=${MAIL_OPTIONS_SERVICE:-Mailgun}  # Layanan SMTP, bisa Mailgun atau lainnya
+      - mail__options__host=${MAIL_OPTIONS_HOST:-smtp.mailgun.org}  # Host SMTP, disesuaikan dengan layanan yang digunakan
+    depends_on:
+      - mysql  # Ghost tergantung pada layanan MySQL
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:2368/ghost/api/v3/admin/"]  # Mengecek status API Ghost
+      interval: 30s  # Setiap 30 detik
+      retries: 5  # Coba 5 kali jika gagal
+      start_period: 30s  # Tunggu 30 detik sebelum memulai healthcheck
+      timeout: 30s  # Durasi timeout per pemeriksaan
+    networks:
+      - ghost-network  # Gunakan jaringan internal Ghost
+
+  # Layanan MySQL
+  mysql:
+    image: 'mysql:8.0'  # Menggunakan MySQL 8.0
+    container_name: mysql
+    restart: unless-stopped  # MySQL akan restart otomatis jika ada masalah
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SERVICE_PASSWORD_MYSQLROOT:-root_password}  # Password root untuk MySQL
+      - MYSQL_USER=${SERVICE_USER_MYSQL:-ghost_user}  # Pengguna Ghost untuk database
+      - MYSQL_PASSWORD=${SERVICE_PASSWORD_MYSQL:-ghost_password}  # Password untuk pengguna Ghost
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-ghost_db}  # Nama database untuk Ghost
+    volumes:
+      - 'ghost-mysql-data:/var/lib/mysql'  # Volume untuk data MySQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--host=127.0.0.1", "--user=root", "--password=${SERVICE_PASSWORD_MYSQLROOT:-root_password}"]  # Mengecek status MySQL
+      interval: 5s  # Setiap 5 detik
+      retries: 10  # Coba 10 kali jika gagal
+      timeout: 20s  # Durasi timeout per pemeriksaan
+    ports:
+      - "3306:3306"  # Mengakses MySQL dari luar Docker (jika diperlukan)
+    networks:
+      - ghost-network  # Gunakan jaringan internal MySQL
+
+# Definisikan jaringan khusus untuk komunikasi antar layanan
+networks:
+  ghost-network:
+    driver: bridge  # Gunakan driver bridge untuk isolasi jaringan antar container
+
+# Volume untuk menyimpan data secara persisten
+volumes:
+  ghost-content-data:  # Volume untuk data Ghost
+  ghost-mysql-data:  # Volume untuk data MySQL

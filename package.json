@@ -10,7 +10,8 @@
         "test": "gulp test",
         "test:ci": "gulp testCI",
         "zip": "gulp zip",
-        "ship": "lerna publish --no-private"
+        "ship": "lerna publish --no-private",
+        "compose": "docker compose -f compose.yml"
     },
     "devDependencies": {
         "autoprefixer": "10.4.20",
