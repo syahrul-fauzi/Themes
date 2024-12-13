@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  ghost:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Pilihan jika Anda ingin build image custom
+    image: ghost-lts:latest  # Jika Anda menggunakan image default Ghost
+    container_name: ghost
+    volumes:
+      - ghost_content:/var/lib/ghost/content  # Volume untuk menyimpan data Ghost secara persisten
+      - ./themes:/var/lib/ghost/content/themes  # Mount tema dari direktori lokal
+    environment:
+      NODE_ENV: ${NODE_ENV:-development} # Default ke development jika tidak diatur
+      url: ${COOLIFY_PROJECT_DOMAIN:-http://localhost:2368} # Default untuk pengembangan
+      database__client: mysql # Gunakan MySQL di produksi untuk skalabilitas
+      database__connection__host: db # Nama layanan database
+      database__connection__user: ${DATABASE_USERNAME:-ghost_user} # Default username
+      database__connection__password: ${DATABASE_PASSWORD:-ghost_password} # Default password
+      database__connection__database: ${DATABASE_NAME:-ghost_db} # Default database
+    depends_on:
+      - db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:2368/ghost/api/v3/admin/"]
+      interval: 30s
+      retries: 5
+      start_period: 30s
+      timeout: 30s
+
+  db:
+    image: mysql:8.0
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass} # Default root password
+      MYSQL_USER: ${DATABASE_USERNAME:-ghost_user} # Default username
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-ghost_password} # Default password
+      MYSQL_DATABASE: ${DATABASE_NAME:-ghost_db} # Default database
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--host=localhost", "--user=root", "--password=${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 30s
+      retries: 5
+      start_period: 30s
+      timeout: 30s
+    ports:
+      - "3306:3306"  # Port database jika perlu diakses dari luar Docker (opsional)
+
+volumes:
+  ghost_content:
+  mysql_data:
