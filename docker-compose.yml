@@ -2,52 +2,51 @@ version: '3.8'
 
 services:
   ghost:
-    build:
-      context: .
-      dockerfile: Dockerfile  # Pilihan jika Anda ingin build image custom
-    image: ghost-lts:latest  # Jika Anda menggunakan image default Ghost
+    image: ghost:4-alpine  # Menggunakan image resmi Ghost berbasis Alpine
     container_name: ghost
+    restart: unless-stopped  # Pastikan Ghost otomatis restart jika ada masalah
+    ports:
+      - "2368:2368"  # Mengarahkan port 2368 di host ke port 2368 di container Ghost
     volumes:
-      - ghost_content:/var/lib/ghost/content  # Volume untuk menyimpan data Ghost secara persisten
-      - ./themes:/var/lib/ghost/content/themes  # Mount tema dari direktori lokal
+      - ghost_content:/var/lib/ghost/content  # Volume untuk menyimpan data Ghost
+      - ./themes:/var/lib/ghost/content/themes  # Volume untuk tema kustom
     environment:
-      NODE_ENV: ${NODE_ENV:-development} # Default ke development jika tidak diatur
-      url: ${COOLIFY_PROJECT_DOMAIN:-http://localhost:2368} # Default untuk pengembangan
-      database__client: mysql # Gunakan MySQL di produksi untuk skalabilitas
-      database__connection__host: db # Nama layanan database
-      database__connection__user: ${DATABASE_USERNAME:-ghost_user} # Default username
-      database__connection__password: ${DATABASE_PASSWORD:-ghost_password} # Default password
-      database__connection__database: ${DATABASE_NAME:-ghost_db} # Default database
+      NODE_ENV: ${NODE_ENV:-development}  # Default ke development jika tidak diatur
+      url: ${COOLIFY_PROJECT_DOMAIN:-http://localhost:2368}  # Default untuk pengembangan
+      database__client: mysql  # Gunakan MySQL di produksi untuk skalabilitas
+      database__connection__host: db  # Nama layanan database
+      database__connection__user: ${DATABASE_USERNAME:-ghost_user}  # Default username
+      database__connection__password: ${DATABASE_PASSWORD:-ghost_password}  # Default password
+      database__connection__database: ${DATABASE_NAME:-ghost_db}  # Default database
     depends_on:
-      - db
-    restart: unless-stopped
+      - db  # Ghost bergantung pada service db
     healthcheck:
-      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:2368/ghost/api/v3/admin/"]
-      interval: 30s
-      retries: 5
-      start_period: 30s
-      timeout: 30s
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:2368/ghost/api/v3/admin/"]  # Cek status Ghost
+      interval: 30s  # Interval untuk pemeriksaan
+      retries: 5  # Coba kembali hingga 5 kali jika gagal
+      start_period: 30s  # Waktu tunggu sebelum pemeriksaan dimulai
+      timeout: 30s  # Durasi timeout per pemeriksaan
 
   db:
-    image: mysql:8.0
+    image: mysql:8.0  # Menggunakan MySQL 8.0
     container_name: db
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass} # Default root password
-      MYSQL_USER: ${DATABASE_USERNAME:-ghost_user} # Default username
-      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-ghost_password} # Default password
-      MYSQL_DATABASE: ${DATABASE_NAME:-ghost_db} # Default database
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}  # Password root untuk MySQL
+      MYSQL_USER: ${DATABASE_USERNAME:-ghost_user}  # Username untuk Ghost
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-ghost_password}  # Password untuk Ghost
+      MYSQL_DATABASE: ${DATABASE_NAME:-ghost_db}  # Nama database default untuk Ghost
     volumes:
-      - mysql_data:/var/lib/mysql
-    restart: unless-stopped
+      - mysql_data:/var/lib/mysql  # Volume untuk data MySQL
+    restart: unless-stopped  # Pastikan MySQL otomatis restart jika ada masalah
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "--host=localhost", "--user=root", "--password=${MYSQL_ROOT_PASSWORD:-rootpass}"]
-      interval: 30s
-      retries: 5
-      start_period: 30s
-      timeout: 30s
+      test: ["CMD", "mysqladmin", "ping", "--host=localhost", "--user=root", "--password=${MYSQL_ROOT_PASSWORD:-rootpass}"]  # Cek status MySQL
+      interval: 30s  # Interval untuk pemeriksaan
+      retries: 5  # Coba kembali hingga 5 kali jika gagal
+      start_period: 30s  # Waktu tunggu sebelum pemeriksaan dimulai
+      timeout: 30s  # Durasi timeout per pemeriksaan
     ports:
       - "3306:3306"  # Port database jika perlu diakses dari luar Docker (opsional)
 
 volumes:
-  ghost_content:
-  mysql_data:
+  ghost_content:  # Volume untuk data Ghost
+  mysql_data:  # Volume untuk data MySQL
