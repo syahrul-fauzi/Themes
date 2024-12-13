@@ -11,7 +11,9 @@
         "test:ci": "gulp testCI",
         "zip": "gulp zip",
         "ship": "lerna publish --no-private",
-        "compose": "docker compose -f compose.yml"
+        "compose": "docker compose -f compose.yml",
+        "clean": "yarn cache clean && rimraf -g '**/node_modules' ",
+        "fix": "yarn cache clean && rimraf -g '**/node_modules' && yarn"
     },
     "devDependencies": {
         "autoprefixer": "10.4.20",

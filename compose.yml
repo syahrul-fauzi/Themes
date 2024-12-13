@@ -11,6 +11,7 @@ services:
     volumes:
       - 'ghost-content-data:/var/lib/ghost/content'  # Volume untuk data Ghost
       - './themes:/var/lib/ghost/content/themes'  # Volume untuk tema kustom
+      # - ./ghost:/var/lib/ghost   # Volume untuk data Ghost
     environment:
       # Pengaturan lingkungan untuk Ghost
       - NODE_ENV=${NODE_ENV:-production}  # Mode produksi secara default
